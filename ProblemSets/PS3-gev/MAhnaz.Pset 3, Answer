@@ -1,0 +1,297 @@
+#######################################################################  
+##                       Pset 3                                    ####
+##                       Mahnaz Karimpour                          ###
+#######################################################################
+# Import necessary packages
+import Pkg
+Pkg.add("Optim")         
+Pkg.add("HTTP")        
+Pkg.add("GLM")           
+Pkg.add("LinearAlgebra") 
+Pkg.add("Random")        
+Pkg.add("Statistics")    
+Pkg.add("DataFrames")  
+Pkg.add("CSV")          
+Pkg.add("FreqTables") 
+
+# Load the required libraries
+using Optim
+using HTTP
+using GLM
+using LinearAlgebra
+using Random
+using Statistics
+using DataFrames
+using CSV
+using FreqTables
+
+# Define the main function that will handle the problem set logic
+function estimate_models()
+    # Placeholder for the core code you will use to solve the problem set
+    println("Running the model estimation...")
+    # Add actual estimation and analysis steps below, for example:
+    # Load datasets, fit models, manipulate data, etc.
+end
+
+# Call the function to run the estimation
+estimate_models()
+
+#######################################################################
+##                           Question 1                           ####
+######################################################################
+
+println("\n---------------- Question 1 ----------------")
+
+using Optim, DataFrames, CSV, HTTP, GLM, LinearAlgebra, Random, Statistics, FreqTables
+
+# Load the data
+url = "https://raw.githubusercontent.com/OU-PhD-Econometrics/fall-2024/master/ProblemSets/PS3-gev/nlsw88w.csv"
+df = CSV.read(HTTP.get(url).body, DataFrame)
+X = [df.age df.white df.collgrad]  # Individual-specific covariates
+Z = hcat(df.elnwage1, df.elnwage2, df.elnwage3, df.elnwage4,
+         df.elnwage5, df.elnwage6, df.elnwage7, df.elnwage8)  # Choice-specific covariates
+y = df.occupation  # Dependent variable (occupations)
+
+# Question 1: Multinomial Logit with alternative-specific covariates
+
+function mnl_loglikelihood(params, X, Z, y)
+    n_obs, n_choices = size(Z)  # Number of observations and choices
+    n_vars = size(X, 2)  # Number of individual-specific covariates
+    
+    # Extract β (reshaped matrix) and γ (scalar) from params vector
+    β = reshape(params[1:end-1], n_vars, n_choices-1)
+    γ = params[end]
+    
+    loglik = 0.0
+    for i in 1:n_obs
+        # Calculate denominator (sum of exponentiated utilities across all alternatives)
+        denom = 1.0
+        for j in 1:n_choices-1
+            denom += exp(dot(X[i,:], β[:,j]) + γ * (Z[i,j] - Z[i,end]))
+        end
+        
+        # Calculate log-likelihood contribution for each observation
+        if y[i] == n_choices  # If chosen alternative is the last (normalized) choice
+            loglik += -log(denom)
+        else  # For the chosen alternative (not the last one)
+            loglik += dot(X[i,:], β[:,y[i]]) + γ * (Z[i,y[i]] - Z[i,end]) - log(denom)
+        end
+    end
+    
+    return -loglik  # Return negative log-likelihood for minimization
+end
+
+# Initialize parameters
+n_vars = size(X, 2)
+n_choices = size(Z, 2)
+initial_params = vcat(vec(zeros(n_vars, n_choices-1)), 0.0)  # Initial β and γ
+
+# Optimize using BFGS method
+result_mnl = optimize(params -> mnl_loglikelihood(params, X, Z, y), initial_params, BFGS())
+
+# Extract and print results
+β_hat = reshape(Optim.minimizer(result_mnl)[1:end-1], n_vars, n_choices-1)  # Reshape β
+γ_hat = Optim.minimizer(result_mnl)[end]  # γ
+
+# Display results
+println("Multinomial Logit Results:")
+println("β_hat:")
+display(β_hat)
+println("\nγ_hat: ", γ_hat)
+
+
+#######################################################################
+##             Question 2: Interpretation of γ̂                    ####
+######################################################################
+println("\n---------------- Question 2 ----------------")
+
+
+println("\nInterpretation of γ̂:")
+println("The estimated coefficient γ̂ = ", γ_hat, 
+    " represents the effect of a one-unit increase in the difference between an alternative's Z value (alternative-specific covariate) and the base alternative's Z value on the log-odds of choosing that alternative over the base alternative, holding all else constant.")
+
+
+    
+
+#######################################################################
+##                         Question 3                             ####
+######################################################################
+println("\n---------------- Question 3 ----------------")
+
+using Optim, DataFrames, CSV, HTTP, LinearAlgebra
+
+# Define the Nested Logit Log-Likelihood Function
+function nested_logit_loglikelihood(params, X, Z, y)
+    n_obs, n_choices = size(Z)  # Number of observations and choices
+    n_vars = size(X, 2)         # Number of variables in X (covariates)
+
+    # Extract parameters from the vector
+    β_WC = params[1:n_vars]              # White Collar β coefficients
+    β_BC = params[n_vars+1:2*n_vars]     # Blue Collar β coefficients
+    λ_WC = params[2*n_vars+1]            # White Collar λ (scale parameter)
+    λ_BC = params[2*n_vars+2]            # Blue Collar λ (scale parameter)
+    γ = params[end]                      # γ (covariate coefficient for Z)
+    
+    loglik = 0.0  # Initialize log-likelihood accumulator
+    
+    for i in 1:n_obs
+        if y[i] in [1, 2, 3]  # White Collar
+            # Numerator and denominators for White Collar nest
+            num = exp((dot(X[i,:], β_WC) + γ * (Z[i,y[i]] - Z[i,end])) / λ_WC)
+            denom_WC = sum(exp.((dot(X[i,:], β_WC) .+ γ .* (Z[i,1:3] .- Z[i,end])) ./ λ_WC))
+            # Full denominator includes both nests
+            denom = 1 + denom_WC^λ_WC + sum(exp.((dot(X[i,:], β_BC) .+ γ .* (Z[i,4:7] .- Z[i,end])) ./ λ_BC))^λ_BC
+            loglik += log(num) + (λ_WC - 1) * log(denom_WC) - log(denom)
+        
+        elseif y[i] in [4, 5, 6, 7]  # Blue Collar
+            # Numerator and denominators for Blue Collar nest
+            num = exp((dot(X[i,:], β_BC) + γ * (Z[i,y[i]] - Z[i,end])) / λ_BC)
+            denom_BC = sum(exp.((dot(X[i,:], β_BC) .+ γ .* (Z[i,4:7] .- Z[i,end])) ./ λ_BC))
+            # Full denominator includes both nests
+            denom = 1 + sum(exp.((dot(X[i,:], β_WC) .+ γ .* (Z[i,1:3] .- Z[i,end])) ./ λ_WC))^λ_WC + denom_BC^λ_BC
+            loglik += log(num) + (λ_BC - 1) * log(denom_BC) - log(denom)
+        
+        else  # "Other" occupation (8th alternative)
+            denom = 1 + sum(exp.((dot(X[i,:], β_WC) .+ γ .* (Z[i,1:3] .- Z[i,end])) ./ λ_WC))^λ_WC + 
+                    sum(exp.((dot(X[i,:], β_BC) .+ γ .* (Z[i,4:7] .- Z[i,end])) ./ λ_BC))^λ_BC
+            loglik += -log(denom)
+        end
+    end
+    
+    return -loglik  # Return the negative log-likelihood for minimization
+end
+
+# Load the dataset (as provided previously)
+url = "https://raw.githubusercontent.com/OU-PhD-Econometrics/fall-2024/master/ProblemSets/PS3-gev/nlsw88w.csv"
+df = CSV.read(HTTP.get(url).body, DataFrame)
+X = [df.age df.white df.collgrad]
+Z = hcat(df.elnwage1, df.elnwage2, df.elnwage3, df.elnwage4,
+         df.elnwage5, df.elnwage6, df.elnwage7, df.elnwage8)
+y = df.occupation
+
+# Initialize parameters for nested logit (as per your previous code)
+initial_params_nested = vcat(zeros(2*size(X, 2)), [1.0, 1.0], 0.0)
+
+# Run the optimization using BFGS algorithm
+result_nested = optimize(params -> nested_logit_loglikelihood(params, X, Z, y), initial_params_nested, BFGS())
+
+# Extract and print results
+β_WC_hat = Optim.minimizer(result_nested)[1:size(X, 2)]       # β_WC coefficients
+β_BC_hat = Optim.minimizer(result_nested)[size(X, 2)+1:2*size(X, 2)]  # β_BC coefficients
+λ_WC_hat = Optim.minimizer(result_nested)[2*size(X, 2)+1]     # λ_WC coefficient
+λ_BC_hat = Optim.minimizer(result_nested)[2*size(X, 2)+2]     # λ_BC coefficient
+γ_hat_nested = Optim.minimizer(result_nested)[end]            # γ coefficient
+
+# Print the estimated parameters
+println("\nNested Logit Results:")
+println("β_WC_hat (White Collar):", β_WC_hat)
+println("β_BC_hat (Blue Collar):", β_BC_hat)
+println("λ_WC_hat (White Collar):", λ_WC_hat)
+println("λ_BC_hat (Blue Collar):", λ_BC_hat)
+println("γ_hat (Nested):", γ_hat_nested)
+
+#######################################################################
+##                    Question 4                                  ####
+######################################################################
+println("\n---------------- Question 4 ----------------")
+
+# Question 4: Wrap all code into a function
+function estimate_models(X, Z, y)
+    # Multinomial Logit
+    println("Starting Multinomial Logit Estimation...")
+    
+    # Setup dimensions
+    n_vars = size(X, 2)  # Number of variables
+    n_choices = size(Z, 2)  # Number of choices
+    
+    # Initial parameter values for MNL
+    initial_params_mnl = vcat(vec(zeros(n_vars, n_choices-1)), 0.0)  # Flatten initial β and set γ to 0
+    
+    # Optimize MNL log-likelihood
+    result_mnl = optimize(params -> mnl_loglikelihood(params, X, Z, y), initial_params_mnl, BFGS())
+    
+    # Extract MNL parameter estimates
+    β_hat_mnl = reshape(Optim.minimizer(result_mnl)[1:end-1], n_vars, n_choices-1)  # Reshape β coefficients
+    γ_hat_mnl = Optim.minimizer(result_mnl)[end]  # Extract γ coefficient
+    
+    # Print MNL results
+    println("\nMultinomial Logit Results:")
+    println("β_hat (MNL):")
+    display(β_hat_mnl)  # Display the β estimates for MNL
+    println("\nγ_hat (MNL): ", γ_hat_mnl)  # Display the γ estimate for MNL
+    
+    # Nested Logit
+    println("\nStarting Nested Logit Estimation...")
+    
+    # Initial parameter values for nested logit
+    initial_params_nested = vcat(zeros(2 * n_vars), [1.0, 1.0], 0.0)  # Initialize β_WC, β_BC, λ_WC, λ_BC, γ
+    
+    # Optimize nested logit log-likelihood
+    result_nested = optimize(params -> nested_logit_loglikelihood(params, X, Z, y), initial_params_nested, BFGS())
+    
+    # Extract Nested Logit parameter estimates
+    β_WC_hat = Optim.minimizer(result_nested)[1:n_vars]  # Extract β_WC
+    β_BC_hat = Optim.minimizer(result_nested)[n_vars+1:2*n_vars]  # Extract β_BC
+    λ_WC_hat = Optim.minimizer(result_nested)[2*n_vars+1]  # Extract λ_WC
+    λ_BC_hat = Optim.minimizer(result_nested)[2*n_vars+2]  # Extract λ_BC
+    γ_hat_nested = Optim.minimizer(result_nested)[end]  # Extract γ
+    
+    # Print Nested Logit results
+    println("\nNested Logit Results:")
+    println("β_WC_hat (Nested):", β_WC_hat)  # Display the β_WC estimates for nested logit
+    println("β_BC_hat (Nested):", β_BC_hat)  # Display the β_BC estimates for nested logit
+    println("λ_WC_hat (Nested):", λ_WC_hat)  # Display the λ_WC estimate for nested logit
+    println("λ_BC_hat (Nested):", λ_BC_hat)  # Display the λ_BC estimate for nested logit
+    println("γ_hat (Nested):", γ_hat_nested)  # Display the γ estimate for nested logit
+end
+
+# Call the function to estimate both models and print the results
+estimate_models(X, Z, y)
+
+
+
+#######################################################################  
+##                   Question 5: test                            ####
+#######################################################################
+println("\n---------------- Question 5 ----------------")
+
+# Import the Test package
+using Test
+
+# Question 5: Unit Tests for Multinomial Logit and Nested Logit Functions
+
+@testset "Multinomial Logit Tests" begin
+    # Define simple test data
+    X_test = [1.0 0.0; 0.0 1.0]  # 2x2 matrix for covariates
+    Z_test = [1.0 0.0 0.0; 0.0 1.0 0.0]  # 2x3 matrix for alternative-specific covariates
+    y_test = [1, 2]  # Outcome (choices) vector
+    params_test = [0.1, 0.2, 0.3, 0.4, 0.5]  # Parameters for testing: β and γ
+
+    # Test if the mnl_loglikelihood function runs without errors or warnings
+    @test_nowarn mnl_loglikelihood(params_test, X_test, Z_test, y_test)
+    
+    # Test if the output is a scalar (number)
+    @test isa(mnl_loglikelihood(params_test, X_test, Z_test, y_test), Number)
+    
+    # Test if the output (negative log-likelihood) is less than 0 (as expected in a minimization problem)
+    @test mnl_loglikelihood(params_test, X_test, Z_test, y_test) < 0
+end
+
+@testset "Nested Logit Tests" begin
+    # Define simple test data
+    X_test = [1.0 0.0; 0.0 1.0]  # 2x2 matrix for covariates
+    Z_test = [1.0 0.0 0.0; 0.0 1.0 0.0]  # 2x3 matrix for alternative-specific covariates
+    y_test = [1, 2]  # Outcome (choices) vector
+    params_test = [0.1, 0.2, 0.3, 0.4, 1.0, 1.0, 0.5]  # Parameters for nested logit: β_WC, β_BC, λ_WC, λ_BC, γ
+
+    # Test if the nested_logit_loglikelihood function runs without errors or warnings
+    @test_nowarn nested_logit_loglikelihood(params_test, X_test, Z_test, y_test)
+    
+    # Test if the output is a scalar (number)
+    @test isa(nested_logit_loglikelihood(params_test, X_test, Z_test, y_test), Number)
+    
+    # Test if the output (negative log-likelihood) is less than 0 (as expected in a minimization problem)
+    @test nested_logit_loglikelihood(params_test, X_test, Z_test, y_test) < 0
+end
+
+println("\nAll tests completed successfully.")

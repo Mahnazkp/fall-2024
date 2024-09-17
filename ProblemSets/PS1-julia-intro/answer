@@ -1,0 +1,736 @@
+
+########################## Problem Set 1 ####################################################
+#                          Economertics 3
+#                           Dr. Ransom
+#                          Mahnaz karimpour
+#############################################################################################
+
+
+# Import necessary packages
+using Random, Distributions, DataFrames, CSV
+
+
+
+###########################################################################################      
+#                            Question 1a
+###############################################################################
+
+# Function to create the matrices as per the problem statement
+function create_matrices()
+    # Set the random seed
+    Random.seed!(1234)
+
+    # (i) Create matrix A (10x7) with random numbers distributed uniformly U[-5, 10]
+    A = rand(Uniform(-5, 10), 10, 7)
+
+    # (ii) Create matrix B (10x7) with random numbers distributed normally N(-2, 15)
+    B = rand(Normal(-2, 15), 10, 7)
+
+    # (iii) Create matrix C (5x7) - combination of parts of A and B
+    C = hcat(A[1:5, 1:5], B[1:5, 6:7])
+
+    # (iv) Create matrix D (10x7) where D[i,j] = A[i,j] if A[i,j] ≤ 0, or 0 otherwise
+    D = [A[i, j] <= 0 ? A[i, j] : 0 for i in 1:10, j in 1:7]
+
+    # Convert matrix C to a DataFrame
+    C_df = DataFrame(C, :auto)
+
+    # Export matrix C as a CSV file
+    CSV.write("Cmatrix.csv", C_df)
+
+    # Convert matrix D to a DataFrame
+    D_df = DataFrame(D, :auto)
+
+    # Export matrix D as a tab-delimited .dat file
+    CSV.write("Dmatrix.dat", D_df; delim='\t')
+
+    # Print all matrices
+    println("Matrix A:")
+    println(A)
+    println("\nMatrix B:")
+    println(B)
+    println("\nMatrix C:")
+    println(C)
+    println("\nMatrix D:")
+    println(D)
+
+    return A, B, C, D
+end
+
+# Call the function to create matrices and perform operations
+A, B, C, D = create_matrices()
+
+
+##############################################################################      
+#                            Question 1b: 
+# Part (b) - Use a built-in Julia function to list the number of elements of A
+###############################################################################
+
+
+num_elements_A = length(A)
+
+# Print the result for part (b)
+println("The number of elements in matrix A is: ", num_elements_A)
+
+#########################################################################################   
+#                            Question 1c: 
+# (c) Use a series of built-in Julia functions to list the number of unique elements of D
+#########################################################################################
+
+unique_elements_D = unique(D)
+num_unique_elements_D = length(unique_elements_D)
+
+# Print the result for part (c)
+println("The number of unique elements in matrix D is: ", num_unique_elements_D)
+
+
+#########################################################################################   
+#                            Question 1d: 
+# (d) Using the reshape() function to create a new matrix called E which is the 'vec' 
+# operator applied to B
+#########################################################################################
+
+
+E = reshape(B, :)  # This flattens the matrix B into a column vector
+
+# Alternatively, using the vec() function which is a simpler way to achieve the same result
+E_vec = vec(B)
+
+# Print the result for part (d)
+println("\nMatrix E using reshape() (first 10 elements): ", E[1:10])
+println("Matrix E using vec() (first 10 elements): ", E_vec[1:10])
+
+#########################################################################################   
+#                            Question 1e: 
+# (e) Create a new array F which is 3-dimensional
+#########################################################################################
+
+
+# F should have A in the first slice and B in the second slice of the third dimension
+F = zeros(10, 7, 2)
+F[:, :, 1] = A
+F[:, :, 2] = B
+
+# Print the 3D array F
+println("3D array F (first slice is A, second slice is B):")
+println(F)
+
+#########################################################################################   
+#                            Question 1f: 
+# (f) Use the permutedims() function to twist F so that it is now F2x10x7 instead of F10x7x2
+#########################################################################################
+
+
+F_permuted = permutedims(F, (3, 1, 2))
+
+# Print the new permuted 3D array F
+println("\nPermuted 3D array F (dimensions are now 2x10x7):")
+println(F_permuted)
+
+#########################################################################################   
+#                            Question 1g: 
+# (g) Create matrix G which is equal to the Kronecker product of B and C
+#########################################################################################
+
+G = kron(B, C)
+
+# Try to compute the Kronecker product of C and F (this will throw an error)
+try
+    F = zeros(10, 7, 2)
+    F[:, :, 1] = A
+    F[:, :, 2] = B
+    kron(C, F)  # This line will throw an error because dimensions are not compatible
+catch e
+    println("Error computing kron(C, F): ", e)
+end
+
+#########################################################################################   
+#                            Question 1h: 
+# (h) Save the matrices A, B, C, D, E, F, and G as a .jld file named matrixpractice
+#########################################################################################
+
+
+E = vec(B)  # Based on previous operations
+@save "matrixpractice.jld" A B C D E F G
+
+#########################################################################################   
+#                            Question 1i: 
+# (i) Save only the matrices A, B, C, and D as a .jld file called firstmatrix
+#########################################################################################
+
+
+@save "firstmatrix.jld" A B C D
+
+#########################################################################################   
+#                            Question 1j: 
+# (j) Export C as a .csv file called Cmatrix
+#########################################################################################
+
+C_df = DataFrame(C, :auto)
+CSV.write("Cmatrix.csv", C_df)
+
+#########################################################################################   
+#                            Question 1k: 
+# (k) Export D as a tab-delimited .dat file called Dmatrix
+#########################################################################################
+
+
+D_df = DataFrame(D, :auto)  # Convert D to a DataFrame
+CSV.write("Dmatrix.dat", D_df; delim='\t')  # Export DataFrame as a .dat file
+
+#########################################################################################   
+#                            Question 1l: 
+# Part (l) - Function definition
+#########################################################################################
+
+
+# Part (l) - Function definition
+function q1()
+    # Set the random seed
+    Random.seed!(1234)
+
+    # Create matrices A, B, C, D as specified in previous steps
+    A = rand(Uniform(-5, 10), 10, 7)
+    B = rand(Normal(-2, 15), 10, 7)
+    C = hcat(A[1:5, 1:5], B[1:5, 6:7])
+    D = [A[i, j] <= 0 ? A[i, j] : 0 for i in 1:10, j in 1:7]
+
+    # Additional operations such as creating E, F, G and saving files are included here
+
+    # Return matrices A, B, C, and D
+    return A, B, C, D
+end
+
+# Call the function q1() and assign its outputs to A, B, C, D
+A, B, C, D = q1()
+
+
+# Import necessary packages
+using Random, Distributions
+
+# Function to create the matrices as per the problem statement
+function create_matrices()
+    # Set the random seed
+    Random.seed!(1234)
+
+    # (i) Create matrix A (10x7) with random numbers distributed uniformly U[-5, 10]
+    A = rand(Uniform(-5, 10), 10, 7)
+
+    # (ii) Create matrix B (10x7) with random numbers distributed normally N(-2, 15)
+    B = rand(Normal(-2, 15), 10, 7)
+
+    # (iii) Create matrix C (5x7) - combination of parts of A and B
+    C = hcat(A[1:5, 1:5], B[1:5, 6:7])
+
+    return A, B, C
+end
+
+# Call the function to create matrices A, B, C
+A, B, C = create_matrices()
+
+#########################################################################################   
+#                            Question 2a: 
+# 2(a) Element-by-element product of A and B using a loop/comprehension
+#########################################################################################
+
+AB = [A[i, j] * B[i, j] for i in 1:size(A, 1), j in 1:size(A, 2)]
+
+# 2(a) Element-by-element product of A and B without using a loop or comprehension
+AB2 = A .* B
+
+# Print the results for part 2(a)
+println("Matrix AB (element-by-element product using comprehension):")
+println(AB)
+println("\nMatrix AB2 (element-by-element product without loop or comprehension):")
+println(AB2)
+
+
+#########################################################################################   
+#                            Question 2b: 
+# 2(b) Create a column vector Cprime with elements of C between -5 and 5 using a loop
+#########################################################################################
+
+Cprime = []
+for i in 1:size(C, 1)
+    for j in 1:size(C, 2)
+        if -5 <= C[i, j] <= 5
+            push!(Cprime, C[i, j])
+        end
+    end
+end
+Cprime = collect(Cprime)  # Ensure it is a column vector
+
+# 2(b) Create a vector Cprime2 without using a loop
+Cprime2 = C[(C .>= -5) .& (C .<= 5)]
+
+# Print the results for part 2(b)
+println("\nColumn vector Cprime (elements of C between -5 and 5 using loop):")
+println(Cprime)
+println("\nColumn vector Cprime2 (elements of C between -5 and 5 without loop):")
+println(Cprime2)
+
+
+# Import necessary packages
+using Random, Distributions
+
+# Define constants
+N = 15169  # Number of observations
+K = 6      # Number of variables (columns)
+T = 5      # Number of time periods
+
+#########################################################################################  
+# 
+#                            Question 2c- 2f: 
+#
+#########################################################################################
+# Initialize the 3-dimensional array X
+X = Array{Float64, 3}(undef, N, K, T)
+
+# Populate the array using loops and the specified distributions
+for t in 1:T
+    # Column 1: Intercept (vector of ones)
+    X[:, 1, t] .= 1.0
+
+    # Column 2: Dummy variable that is 1 with probability 0.75 * (6 - t) / 5
+    X[:, 2, t] = rand(Binomial(1, 0.75 * (6 - t) / 5), N)
+
+    # Column 3: Continuous variable distributed normal with mean 15 + t - 1 and standard deviation 5(t - 1)
+    X[:, 3, t] = rand(Normal(15 + t - 1, 5 * (t - 1)), N)
+
+    # Column 4: Continuous variable distributed normal with mean π (6 - t) / 3 and standard deviation 1/e
+    X[:, 4, t] = rand(Normal(pi * (6 - t) / 3, 1 / exp(1)), N)
+
+    # Column 5: Discrete variable distributed as binomial with n = 20 and p = 0.6
+    X[:, 5, t] = rand(Binomial(20, 0.6), N)
+
+    # Column 6: Discrete variable distributed as binomial with n = 20 and p = 0.5
+    X[:, 6, t] = rand(Binomial(20, 0.5), N)
+end
+
+# Print the first slice of X for verification
+println("3D array X (first slice for t=1):")
+println(X[:, :, 1])
+
+# Import necessary packages
+using Random, Distributions, LinearAlgebra
+
+# Define constants
+N = 15169  # Number of observations
+K = 6      # Number of variables (columns)
+T = 5      # Number of time periods
+
+# Part (f) - Function definition
+function q2(A, B, C)
+    # (c) Create 3D array X as defined in previous steps
+    X = Array{Float64, 3}(undef, N, K, T)
+
+    for t in 1:T
+        X[:, 1, t] .= 1.0
+        X[:, 2, t] = rand(Binomial(1, 0.75 * (6 - t) / 5), N)
+        X[:, 3, t] = rand(Normal(15 + t - 1, 5 * (t - 1)), N)
+        X[:, 4, t] = rand(Normal(pi * (6 - t) / 3, 1 / exp(1)), N)
+        X[:, 5, t] = rand(Binomial(20, 0.6), N)
+        X[:, 6, t] = rand(Binomial(20, 0.5), N)
+    end
+
+    # (d) Create matrix β using comprehensions
+    β = [1 + 0.25 * (t - 1) for t in 1:T]  # 1, 1.25, 1.5, ...
+    β = hcat(β,
+             [log(t) for t in 1:T], 
+             [-sqrt(t) for t in 1:T],
+             [exp(t) - exp(t + 1) for t in 1:T], 
+             [t for t in 1:T], 
+             [t / 3 for t in 1:T])'
+
+    # Print the β matrix for verification
+    println("Matrix β:")
+    println(β)
+
+    # (e) Create matrix Y using comprehensions
+    Y = Array{Float64, 2}(undef, N, T)
+    for t in 1:T
+        ε_t = rand(Normal(0, 0.36), N)  # Generate epsilon
+        Y[:, t] = X[:, :, t] * β[:, t] + ε_t  # Calculate Y_t = X_t * β_t + ε_t
+    end
+
+    # Print the Y matrix for verification
+    println("\nMatrix Y:")
+    println(Y)
+
+    # The function returns nothing
+end
+
+# Ensure to define q1() function that returns A, B, C, D before this part
+# A, B, C, D = q1()  # Assuming q1() is defined and returns A, B, C, D
+# Call q2() with matrices A, B, C from q1()
+q2(A, B, C)
+
+
+#########################################################################################   
+#                            Question 3a: 
+# (a) Import the CSV file into Julia as a DataFrame
+#########################################################################################
+
+# Import necessary packages
+using DataFrames, CSV, FreqTables, Statistics
+
+# Part (g) - Function definition
+function q3()
+    # (a) Import the CSV file into Julia as a DataFrame
+    # Ensure the correct path to the file is provided
+    file_path = "nlsw88.csv"  # Update this path if your file is located elsewhere
+    
+    if !isfile(file_path)
+        println("File not found: ", file_path)
+        return
+    end
+
+    df = CSV.read(file_path, DataFrame)
+
+    # Handle missing values (if needed) and convert variable names
+    # Assuming no specific missing value handling was provided in the instructions
+
+    # Save the processed DataFrame as nlsw88_processed.csv
+    CSV.write("nlsw88_processed.csv", df)
+
+#########################################################################################   
+#                            Question 3b: 
+#  (b) Calculate percentage of the sample
+#########################################################################################
+
+
+    never_married_pct = mean(df.married .== "Never married") * 100
+    college_grad_pct = mean(df.college .== "Yes") * 100
+
+    println("Percentage never married: ", never_married_pct)
+    println("Percentage college graduates: ", college_grad_pct)
+
+#########################################################################################   
+#                            Question 3c: 
+# (c) Use freqtable() to report percentage by race category
+#########################################################################################
+    
+
+    
+    race_freq = freqtable(df.race)
+    println("Frequency table for race:")
+    println(race_freq)
+
+#########################################################################################   
+#                            Question 3d: 
+# (d) Use describe() to create summary statistics
+#########################################################################################
+
+    
+    summarystats = describe(df)
+    println("Summary statistics for the DataFrame:")
+    println(summarystats)
+
+    # Determine how many grade observations are missing
+    missing_grade_count = count(ismissing, df.grade)
+    println("Number of missing grade observations: ", missing_grade_count)
+    
+#########################################################################################   
+#                            Question 3e: 
+# (e) Joint distribution of industry and occupation using cross-tabulation
+#########################################################################################
+
+
+    industry_occupation_crosstab = freqtable(df, :industry, :occupation)
+    println("Joint distribution of industry and occupation:")
+    println(industry_occupation_crosstab)
+
+
+#########################################################################################   
+#                            Question 3f-3g: 
+# (f) Tabulate the mean wage over industry and occupation categories
+#########################################################################################
+
+
+
+    wage_by_industry_occupation = combine(groupby(df[:, [:industry, :occupation, :wage]], [:industry, :occupation]), 
+                                          :wage => mean => :mean_wage)
+    println("Mean wage by industry and occupation:")
+    println(wage_by_industry_occupation)
+end
+
+# Call the function q3()
+q3()
+
+#########################################################################################   
+#                            Question 4a: 
+#
+#########################################################################################
+
+
+
+# Step 1: Import necessary package
+using JLD
+
+# Step 2: Load the JLD file
+file_path = "firstmatrix.jld"  
+data = load(file_path)
+
+# Step 3: Access the matrices stored in the file
+A = data["A"]
+B = data["B"]
+C = data["C"]
+D = data["D"]
+
+# Step 4: Print the matrices to verify they have been loaded correctly
+println("Matrix A:")
+println(A)
+
+println("\nMatrix B:")
+println(B)
+
+println("\nMatrix C:")
+println(C)
+
+println("\nMatrix D:")
+println(D)
+
+
+#########################################################################################   
+#                            Question 4b: 
+# Define the function matrixops
+#########################################################################################
+
+function matrixops(A, B)
+    # Check if the matrices have the same size
+    if size(A) != size(B)
+        error("inputs must have the same size.")
+    end
+
+    # (i) Element-by-element product
+    elementwise_product = A .* B
+    
+    # (ii) Matrix product of A'B
+    matrix_product = transpose(A) * B
+    
+    # (iii) Sum of all elements of A + B
+    sum_elements = sum(A + B)
+
+    return elementwise_product, matrix_product, sum_elements
+end
+
+   
+#########################################################################################   
+#                            Question 4c: 
+# Define the function matrixops
+#########################################################################################
+
+
+# Define the function matrixops
+function matrixops(A, B)
+    # This function performs three operations on two input matrices A and B:
+    # (i) Computes the element-by-element product of A and B.
+    # (ii) Computes the matrix product of A' (transpose of A) and B.
+    # (iii) Calculates the sum of all elements in the matrix A + B.
+
+    # Check if the matrices have the same size
+    if size(A) != size(B)
+        error("inputs must have the same size.")
+    end
+
+    # (i) Element-by-element product
+    elementwise_product = A .* B
+    
+    # (ii) Matrix product of A'B
+    matrix_product = transpose(A) * B
+    
+    # (iii) Sum of all elements of A + B
+    sum_elements = sum(A + B)
+
+    return elementwise_product, matrix_product, sum_elements
+end
+
+#########################################################################################   
+#                            Question 4d: 
+# Evaluate matrixops() using A and B from question (a) of problem 1
+#########################################################################################
+
+# Assuming matrices A and B are already loaded from the JLD file
+# If not, load them using the following code:
+using JLD
+
+# Load the matrices from the JLD file
+file_path = "firstmatrix.jld"
+data = load(file_path)
+A = data["A"]
+B = data["B"]
+
+# Evaluate matrixops using matrices A and B
+elementwise_product, matrix_product, sum_elements = matrixops(A, B)
+
+# Print the results
+println("Element-wise product of A and B:")
+println(elementwise_product)
+
+println("\nMatrix product of A' and B:")
+println(matrix_product)
+
+println("\nSum of all elements of A + B:")
+println(sum_elements)
+
+#########################################################################################   
+#                            Question 4e: 
+# write an if statement which gives an error if the two inputs are not the same size.
+#########################################################################################
+
+
+function matrixops(A, B)
+    # This function performs three operations on two input matrices A and B:
+    # (i) Computes the element-by-element product of A and B.
+    # (ii) Computes the matrix product of A' (transpose of A) and B.
+    # (iii) Calculates the sum of all elements in the matrix A + B.
+    
+    # Check if the matrices have the same size
+    if size(A) != size(B)
+        error("inputs must have the same size.")
+    end
+
+    # (i) Element-by-element product
+    elementwise_product = A .* B
+    
+    # (ii) Matrix product of A'B
+    matrix_product = transpose(A) * B
+    
+    # (iii) Sum of all elements of A + B
+    sum_elements = sum(A + B)
+
+    return elementwise_product, matrix_product, sum_elements
+end
+
+#########################################################################################   
+#                            Question 4f: 
+# Evaluate matrixops.m using C and D from question (a) of problem 1. 
+#########################################################################################
+
+# Assuming matrices C and D are already defined from question (a) of problem 1
+
+# Evaluate matrixops using matrices C and D
+try
+    elementwise_product_CD, matrix_product_CD, sum_elements_CD = matrixops(C, D)
+    println("Element-wise product of C and D:")
+    println(elementwise_product_CD)
+
+    println("\nMatrix product of C' and D:")
+    println(matrix_product_CD)
+
+    println("\nSum of all elements of C + D:")
+    println(sum_elements_CD)
+catch e
+    println("Error: ", e)
+end
+
+
+#########################################################################################   
+#                            Question 4g: 
+# Now evaluate matrixops.m using ttl_exp and wage from nlsw88_processed
+#########################################################################################
+
+
+using CSV
+using DataFrames
+
+# Update the path to the actual location of the CSV file
+file_path = "/Users/mahnazkarimpour/Desktop/fall-2024/ProblemSets/PS1-julia-intro/nlsw88.csv"
+
+# Load the nlsw88_processed.csv dataset
+nlsw88 = CSV.read(file_path, DataFrame)
+
+# Convert the ttl_exp and wage columns to arrays
+ttl_exp_array = convert(Array, nlsw88.ttl_exp)
+wage_array = convert(Array, nlsw88.wage)
+
+# Evaluate matrixops using ttl_exp_array and wage_array
+try
+    elementwise_product_exp_wage, matrix_product_exp_wage, sum_elements_exp_wage = matrixops(ttl_exp_array, wage_array)
+    
+    println("Element-wise product of ttl_exp and wage:")
+    println(elementwise_product_exp_wage)
+
+    println("\nMatrix product of ttl_exp' and wage:")
+    println(matrix_product_exp_wage)
+
+    println("\nSum of all elements of ttl_exp + wage:")
+    println(sum_elements_exp_wage)
+catch e
+    println("Error: ", e)
+end
+
+
+#########################################################################################   
+#                            Question 4h: 
+# Wrap a function definition around all of the code for question 4
+#########################################################################################
+
+
+using CSV
+using DataFrames
+
+function q4()
+    # Update the path to the actual location of the CSV file
+    file_path = "/Users/mahnazkarimpour/Desktop/fall-2024/ProblemSets/PS1-julia-intro/nlsw88.csv"
+
+    # Load the nlsw88_processed.csv dataset
+    nlsw88 = CSV.read(file_path, DataFrame)
+
+    # Convert the ttl_exp and wage columns to arrays
+    ttl_exp_array = convert(Array, nlsw88.ttl_exp)
+    wage_array = convert(Array, nlsw88.wage)
+
+    # Evaluate matrixops using ttl_exp_array and wage_array
+    try
+        elementwise_product_exp_wage, matrix_product_exp_wage, sum_elements_exp_wage = matrixops(ttl_exp_array, wage_array)
+
+        println("Element-wise product of ttl_exp and wage:")
+        println(elementwise_product_exp_wage)
+
+        println("\nMatrix product of ttl_exp' and wage:")
+        println(matrix_product_exp_wage)
+
+        println("\nSum of all elements of ttl_exp + wage:")
+        println(sum_elements_exp_wage)
+    catch e
+        println("Error: ", e)
+    end
+end
+
+# Call the function q4()
+q4()
+
+
+#########################################################################################   
+#                            Question 5: 
+# Write unit tests for each of the functions you’ve created and run them to verify that they
+# work as expected
+#########################################################################################
+
+
+using Test
+
+@testset "Function Tests" begin
+    # Test matrixops function
+    @testset "matrixops Function" begin
+        # Define test inputs
+        A = [1 2; 3 4]
+        B = [5 6; 7 8]
+        
+        # Expected results
+        expected_elementwise = [5 12; 21 32]
+        expected_matrix_product = A' * B
+        expected_sum = sum(A + B)
+        
+        # Run the function
+        elementwise_result, matrix_product_result, sum_result = matrixops(A, B)
+        
+        # Assertions
+        @test elementwise_result == expected_elementwise
+        @test matrix_product_result == expected_matrix_product
+        @test sum_result == expected_sum
+    end
+
+    # Repeat similar test sets for other functions
+end
